@@ -1,0 +1,145 @@
+:root {
+    --bg: #f6f4ef;
+    --card: #ffffff;
+    --ink: #1f2328;
+    --muted: #6a737d;
+    --accent: #2f6fde;
+    --light: #f0d9b5;
+    --dark: #b58863;
+    --last: rgba(255, 214, 0, 0.45);
+    --hint: rgba(47, 111, 222, 0.45);
+    --border: #e3e0d8;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #16181c;
+        --card: #1f2329;
+        --ink: #e8e6e3;
+        --muted: #9aa4af;
+        --accent: #6fa0ff;
+        --light: #c9b18f;
+        --dark: #8a6a4a;
+        --border: #2e333a;
+    }
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 16px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+header h1 { margin: 0; font-size: 1.6rem; }
+.tagline { margin: 4px 0 16px; color: var(--muted); }
+
+main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.board-col { flex: 1 1 360px; max-width: 560px; }
+.side-col { flex: 1 1 280px; max-width: 420px; display: flex; flex-direction: column; gap: 12px; }
+
+.board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    grid-template-rows: repeat(8, 1fr);
+    aspect-ratio: 1;
+    width: 100%;
+    border: 4px solid #6b4f36;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.sq {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    border: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font: inherit;
+}
+
+.sq.light { background: var(--light); }
+.sq.dark { background: var(--dark); }
+.sq.last { box-shadow: inset 0 0 0 100px var(--last); }
+.sq.hint { box-shadow: inset 0 0 0 100px var(--hint); }
+.sq.selected { outline: 4px solid var(--accent); outline-offset: -4px; }
+.sq.target::after {
+    content: "";
+    position: absolute;
+    width: 28%;
+    height: 28%;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.25);
+}
+
+.sq[data-rank]::before,
+.sq[data-file]::after {
+    position: absolute;
+    font-size: 0.65rem;
+    color: rgba(0, 0, 0, 0.55);
+}
+.sq[data-rank]::before { content: attr(data-rank); top: 2px; left: 3px; }
+.sq[data-file]:not(.target)::after { content: attr(data-file); bottom: 1px; right: 3px; }
+
+.piece {
+    font-size: clamp(1.6rem, 7vw, 3.2rem);
+    line-height: 1;
+    user-select: none;
+    font-family: "Apple Symbols", "Segoe UI Symbol", "DejaVu Sans", serif;
+}
+.piece.white { color: #fff; text-shadow: 0 0 2px #000, 0 0 1px #000, 0 1px 1px #000; }
+.piece.black { color: #111; text-shadow: 0 0 1px #fff; }
+
+.status { margin-top: 10px; font-weight: 600; min-height: 1.4em; }
+
+.card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+}
+
+.card-title, summary { font-weight: 600; cursor: default; }
+summary { cursor: pointer; }
+
+.speech .speaker { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.speech .message { font-size: 1.35rem; font-weight: 600; margin-top: 4px; }
+
+input[type="range"] { width: 100%; margin: 8px 0; }
+input[type="text"] { width: 100%; padding: 6px; font-family: ui-monospace, monospace; font-size: 0.8rem; }
+
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0 8px; }
+
+.buttons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+button:not(.sq), select {
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--ink);
+    font: inherit;
+    cursor: pointer;
+}
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.history { margin: 6px 0 0; padding-left: 28px; max-height: 180px; overflow-y: auto; font-family: ui-monospace, monospace; white-space: pre; }
+
+.thinking table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+.thinking th, .thinking td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--border); }
+.thinking tr.chosen td { font-weight: 700; background: var(--hint); }
+.tag { background: #ffd54f; color: #000; border-radius: 4px; padding: 1px 6px; font-size: 0.8rem; }
+.small { font-size: 0.85rem; color: var(--muted); }

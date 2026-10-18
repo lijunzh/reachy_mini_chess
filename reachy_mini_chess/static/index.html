@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Reachy Mini Chess</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+    <header>
+        <h1>Reachy Mini Chess</h1>
+        <p class="tagline">Reachy thinks and calls its moves. You move the pieces.</p>
+    </header>
+
+    <main>
+        <section class="board-col">
+            <div id="board" class="board" aria-label="Chess board"></div>
+            <div id="status" class="status">Loading…</div>
+        </section>
+
+        <section class="side-col">
+            <div class="card speech">
+                <div class="speaker">Reachy says</div>
+                <div id="message" class="message">…</div>
+            </div>
+
+            <div class="card">
+                <label for="elo">Reachy's strength: <strong><span id="elo-label">800</span> Elo</strong></label>
+                <input type="range" id="elo" min="400" max="2400" step="100" value="800">
+                <div class="row">
+                    <label for="robot-color">Reachy plays</label>
+                    <select id="robot-color">
+                        <option value="black">Black</option>
+                        <option value="white">White</option>
+                    </select>
+                </div>
+                <div class="buttons">
+                    <button id="new-game" class="primary">New game</button>
+                    <button id="take-back">Take back</button>
+                    <button id="hint">Hint</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Moves</div>
+                <ol id="history" class="history"></ol>
+            </div>
+
+            <details class="card">
+                <summary>Peek inside Reachy's brain</summary>
+                <div id="thinking" class="thinking">Make a move and Reachy will show its choices here.</div>
+            </details>
+
+            <details class="card">
+                <summary>Set up a position</summary>
+                <p class="small">Paste a FEN (the camera will fill this in later), then ask Reachy for a move.</p>
+                <input type="text" id="fen" spellcheck="false">
+                <div class="buttons">
+                    <button id="load-fen">Load</button>
+                    <button id="suggest">Suggest a move</button>
+                    <button id="robot-move">Reachy, play it</button>
+                </div>
+            </details>
+        </section>
+    </main>
+
+    <script src="/static/main.js"></script>
+</body>
+
+</html>

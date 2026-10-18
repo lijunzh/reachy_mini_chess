@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "reachy_mini_chess"
+version = "0.1.0"
+description = "Reachy Mini plays chess with kids at a chosen Elo"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "reachy-mini",
+    "chess>=1.10",
+]
+keywords = ["reachy-mini-app"]
+
+[project.optional-dependencies]
+dev = ["pytest", "httpx"]
+
+[project.entry-points."reachy_mini_apps"]
+reachy_mini_chess = "reachy_mini_chess.main:ReachyMiniChess"
+
+[tool.setuptools]
+package-dir = { "" = "." }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["reachy_mini_chess*"]
+
+[tool.setuptools.package-data]
+reachy_mini_chess = ["**/*"] # Also include all non-.py files
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
