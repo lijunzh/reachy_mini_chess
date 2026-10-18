@@ -42,6 +42,7 @@ class Game:
         self.elo = level_for(elo).elo
         self.robot_color = robot_color
         self.last: Recommendation | None = None
+        self.expected_cp: int | None = None
         self.message = "Ready when you are!"
 
     # --- setup -------------------------------------------------------------
@@ -54,6 +55,7 @@ class Game:
                 self.robot_color = robot_color
             self.board.reset()
             self.last = None
+            self.expected_cp = None
             self.message = "New game. Your move!" if self.kid_to_move else "New game. My move first."
             self.on_event("new_game", {"elo": self.elo})
 
@@ -69,6 +71,7 @@ class Game:
                 raise ValueError(f"not a legal chess position: {board.status()!r}")
             self.board = board
             self.last = None
+            self.expected_cp = None
             self.message = "Position loaded."
 
     # --- turns -------------------------------------------------------------
@@ -77,8 +80,12 @@ class Game:
     def kid_to_move(self) -> bool:
         return self.board.turn != self.robot_color
 
-    def play_kid_move(self, uci: str) -> Recommendation | None:
-        """Apply the kid's move, then let the robot reply. Returns the reply."""
+    def play_kid_move(self, uci: str, reply: bool = True) -> Recommendation | None:
+        """Apply the kid's move. With ``reply``, the robot answers straight away.
+
+        The board page passes ``reply=False`` so it can show the kid's move
+        first, then ask for the robot's move separately.
+        """
         with self.lock:
             if self.board.is_game_over(claim_draw=True):
                 raise ValueError("the game is over")
@@ -86,27 +93,27 @@ class Game:
                 raise ValueError("it is the robot's turn")
             move = self._parse(uci)
             words = move_to_words(self.board, move)
-            expected = self.last.score_cp if self.last else None
+            self.expected_cp = self.last.score_cp if self.last else None
             self.board.push(move)
+            self.message = "Hmm, let me think..."
             self.on_event("kid_moved", {"uci": uci, "words": words})
             if self._finish_if_over(words):
                 return None
-            return self.play_robot_move(expected_cp=expected)
+            return self.play_robot_move() if reply else None
 
-    def play_robot_move(self, expected_cp: int | None = None) -> Recommendation:
-        """Robot chooses a move at the preset Elo and plays it on the digital board.
-
-        ``expected_cp`` is the robot's evaluation after its previous move. If the
-        kid's reply made things much worse for the robot, that was a strong move.
-        """
+    def play_robot_move(self) -> Recommendation:
+        """Robot chooses a move at the preset Elo and plays it on the digital board."""
         with self.lock:
             if self.board.is_game_over(claim_draw=True):
                 raise ValueError("the game is over")
             self.on_event("thinking", {})
             started = time.monotonic()
             rec = self.picker.choose(self.board, self.elo)
-            if expected_cp is not None and rec.best_score_cp < expected_cp - STRONG_MOVE_CP:
-                self.on_event("kid_strong_move", {"swing_cp": expected_cp - rec.best_score_cp})
+            # The robot's evaluation after its previous move. If the kid's reply
+            # made things much worse for the robot, that was a strong move.
+            expected, self.expected_cp = self.expected_cp, None
+            if expected is not None and rec.best_score_cp < expected - STRONG_MOVE_CP:
+                self.on_event("kid_strong_move", {"swing_cp": expected - rec.best_score_cp})
             # Let the robot finish looking like it is thinking.
             time.sleep(max(0.0, self.min_think_s - (time.monotonic() - started)))
             self.board.push(rec.move)
@@ -137,6 +144,7 @@ class Game:
             while self.board.move_stack and not self.kid_to_move:
                 self.board.pop()
             self.last = None
+            self.expected_cp = None
             self.message = "Okay, take two."
 
     # --- reporting ---------------------------------------------------------
@@ -145,9 +153,14 @@ class Game:
         with self.lock:
             board = self.board
             replay = board.root()  # the loaded position, not necessarily the usual start
-            history = []
+            history, last_move = [], None
+            took = {chess.WHITE: [], chess.BLACK: []}  # pieces each side captured this game
             for move in board.move_stack:
                 history.append(replay.san(move))
+                last_move = move_motion(replay, move)
+                if last_move["captured"]:
+                    victim = replay.piece_at(chess.parse_square(last_move["captured"]))
+                    took[replay.turn].append(victim.symbol().lower())
                 replay.push(move)
             outcome = board.outcome(claim_draw=True)
             return {
@@ -162,6 +175,9 @@ class Game:
                 "game_over": outcome is not None,
                 "result": outcome.result() if outcome else None,
                 "message": self.message,
+                "last_move": last_move,
+                "captured_by_robot": took[self.robot_color],
+                "captured_by_kid": took[not self.robot_color],
                 "last_robot_move": self.last.to_dict() if self.last else None,
                 "analyzer": self.picker.analyzer.name,
             }
@@ -192,3 +208,28 @@ class Game:
         self.message = f"{last_move_words}{stop} {words}"
         self.on_event("game_over", {"winner": winner, "words": words})
         return True
+
+
+def move_motion(board: chess.Board, move: chess.Move) -> dict:
+    """What the page should animate for ``move``, which is legal in ``board``.
+
+    ``slides`` lists every piece that travels (two when castling); ``captured`` is
+    the square whose piece is taken, which is not the arrival square en passant.
+    """
+    slides = [(move.from_square, move.to_square)]
+    captured = None
+    if board.is_castling(move):
+        rank = chess.square_rank(move.from_square)
+        if board.is_kingside_castling(move):
+            slides.append((chess.square(7, rank), chess.square(5, rank)))
+        else:
+            slides.append((chess.square(0, rank), chess.square(3, rank)))
+    elif board.is_en_passant(move):
+        captured = chess.square(chess.square_file(move.to_square), chess.square_rank(move.from_square))
+    elif board.is_capture(move):
+        captured = move.to_square
+    return {
+        "uci": move.uci(),
+        "slides": [[chess.square_name(a), chess.square_name(b)] for a, b in slides],
+        "captured": chess.square_name(captured) if captured is not None else None,
+    }

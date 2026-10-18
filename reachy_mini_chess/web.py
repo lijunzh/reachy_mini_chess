@@ -28,6 +28,7 @@ class NewGame(BaseModel):
 
 class Move(BaseModel):
     uci: str
+    reply: bool = True  # the page sets False and asks for the robot's move separately
 
 
 class Position(BaseModel):
@@ -58,13 +59,11 @@ def register_routes(api: FastAPI, game: Game) -> None:
     def new_game(body: NewGame) -> dict:
         color = chess.WHITE if body.robot_color == "white" else chess.BLACK
         game.new_game(body.elo, color)
-        if not game.kid_to_move:
-            game.play_robot_move()
         return state_with()
 
     @api.post("/api/move")
     def kid_move(body: Move) -> dict:
-        guarded(lambda: game.play_kid_move(body.uci))
+        guarded(lambda: game.play_kid_move(body.uci, reply=body.reply))
         return state_with()
 
     @api.post("/api/robot-move")
@@ -116,7 +115,7 @@ def main() -> None:
     parser.add_argument("--port", type=int, default=8042)
     args = parser.parse_args()
 
-    game = Game(MovePicker(make_analyzer()), elo=args.elo)
+    game = Game(MovePicker(make_analyzer()), elo=args.elo, min_think_s=1.0)
     print(f"Engine: {game.picker.analyzer.name}. Open http://127.0.0.1:{args.port}")
     try:
         uvicorn.run(create_standalone_app(game), host="127.0.0.1", port=args.port)

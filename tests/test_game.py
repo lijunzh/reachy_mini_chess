@@ -1,11 +1,12 @@
 import random
+from dataclasses import replace
 
 import chess
 import pytest
 from fastapi.testclient import TestClient
 
 from reachy_mini_chess.engine import MovePicker, SimpleAnalyzer
-from reachy_mini_chess.game import Game
+from reachy_mini_chess.game import Game, move_motion
 from reachy_mini_chess.web import create_standalone_app
 
 
@@ -100,4 +101,59 @@ def test_web_api_round_trip(game):
     assert rec["kind"] == "suggestion" and rec["uci"] in state["legal"]
 
     state = client.post("/api/new", json={"elo": 800, "robot_color": "white"}).json()
-    assert len(state["history"]) == 1 and state["kid_to_move"]  # robot opened
+    assert state["history"] == [] and not state["kid_to_move"]  # the page asks the robot to open
+    state = client.post("/api/robot-move").json()
+    assert len(state["history"]) == 1 and state["kid_to_move"]
+
+
+def test_page_flow_shows_kid_move_before_robot_reply(game, events):
+    client = TestClient(create_standalone_app(game))
+    state = client.post("/api/move", json={"uci": "e2e4", "reply": False}).json()
+    assert state["history"] == ["e4"] and not state["kid_to_move"]
+    assert state["last_move"] == {"uci": "e2e4", "slides": [["e2", "e4"]], "captured": None}
+    assert "thinking" not in events
+
+    state = client.post("/api/robot-move").json()
+    assert len(state["history"]) == 2 and state["kid_to_move"]
+    assert state["last_move"]["uci"] == state["last_robot_move"]["uci"]
+
+
+def test_strong_kid_move_is_noticed_when_reply_is_asked_separately(game, events):
+    game.play_kid_move("e2e4")
+    # Pretend the robot thought it was winning big, so any kid reply looks strong.
+    game.last = replace(game.last, score_cp=game.last.score_cp + 1000)
+    game.play_kid_move("d2d4", reply=False)
+    events.clear()
+    game.play_robot_move()
+    assert events[:2] == ["thinking", "kid_strong_move"]
+
+
+@pytest.mark.parametrize(
+    "fen, uci, slides, captured",
+    [
+        ("4k3/8/8/3q4/8/2N5/8/4K3 w - - 0 1", "c3d5", [["c3", "d5"]], "d5"),
+        ("4k3/8/8/8/8/8/8/4K2R w K - 0 1", "e1g1", [["e1", "g1"], ["h1", "f1"]], None),
+        ("r3k3/8/8/8/8/8/8/4K3 b q - 0 1", "e8c8", [["e8", "c8"], ["a8", "d8"]], None),
+        ("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1", "e5d6", [["e5", "d6"]], "d5"),
+    ],
+)
+def test_last_move_describes_what_to_animate(fen, uci, slides, captured):
+    board = chess.Board(fen)
+    assert move_motion(board, chess.Move.from_uci(uci)) == {
+        "uci": uci, "slides": slides, "captured": captured,
+    }
+
+
+@pytest.mark.parametrize(
+    "fen, uci, taken",
+    [
+        ("4k3/8/8/3q4/8/2N5/8/4K3 w - - 0 1", "c3d5", ["q"]),
+        ("4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1", "e5d6", ["p"]),  # en passant
+    ],
+)
+def test_capture_trays_count_this_games_captures_only(game, fen, uci, taken):
+    game.set_position(fen)  # a sparse position: missing pieces were never captured
+    game.play_kid_move(uci, reply=False)
+    state = game.state()
+    assert state["captured_by_kid"] == taken
+    assert state["captured_by_robot"] == []

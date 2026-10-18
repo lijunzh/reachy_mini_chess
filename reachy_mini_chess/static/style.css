@@ -8,6 +8,8 @@
     --dark: #b58863;
     --last: rgba(255, 214, 0, 0.45);
     --hint: rgba(47, 111, 222, 0.45);
+    --taken: rgba(220, 38, 38, 0.28);
+    --taken-ring: rgba(220, 38, 38, 0.9);
     --border: #e3e0d8;
 }
 
@@ -74,6 +76,8 @@ main {
 .sq.light { background: var(--light); }
 .sq.dark { background: var(--dark); }
 .sq.last { box-shadow: inset 0 0 0 100px var(--last); }
+/* A piece was taken here: red tint plus a red ring, so it stays visible after the move. */
+.sq.taken { box-shadow: inset 0 0 0 4px var(--taken-ring), inset 0 0 0 100px var(--taken); }
 .sq.hint { box-shadow: inset 0 0 0 100px var(--hint); }
 .sq.selected { outline: 4px solid var(--accent); outline-offset: -4px; }
 .sq.target::after {
@@ -102,8 +106,16 @@ main {
 }
 .piece.white { color: #fff; text-shadow: 0 0 2px #000, 0 0 1px #000, 0 1px 1px #000; }
 .piece.black { color: #111; text-shadow: 0 0 1px #fff; }
+.piece.moving { position: relative; z-index: 5; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, 0.45)); }
+.piece.vanish { opacity: 0; transform: scale(0.3) rotate(-25deg); }
 
 .status { margin-top: 10px; font-weight: 600; min-height: 1.4em; }
+.status.waiting { animation: pulse 0.9s ease-in-out infinite alternate; }
+@keyframes pulse { from { opacity: 1; } to { opacity: 0.35; } }
+
+.captures { margin-top: 8px; display: grid; gap: 2px; font-size: 0.9rem; }
+.cap-label { display: inline-block; min-width: 8.5em; color: var(--muted); }
+.cap-pieces .piece { font-size: 1.4rem; margin-right: 1px; }
 
 .card {
     background: var(--card);

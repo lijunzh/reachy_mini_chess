@@ -26,7 +26,7 @@ class ReachyMiniChess(ReachyMiniApp):
         game = Game(
             MovePicker(make_analyzer()),
             on_event=lambda name, data: events.put((name, data)),
-            min_think_s=1.5,
+            min_think_s=2.2,  # about as long as the robot's thinking gesture
         )
         register_routes(self.settings_app, game)
         self.logger.info(f"Chess engine: {game.picker.analyzer.name}")
