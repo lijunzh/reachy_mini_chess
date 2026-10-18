@@ -31,14 +31,26 @@ Built by Lijun and James for the GenAI4Kidz Reachy Mini Winter Coding Challenge.
 
 The Reachy Mini desktop app (or a real robot) must be running.
 
-**From the desktop app:** this package is installed in the app's environment, so
-it shows up as `reachy_mini_chess` in the app list. Press start, then open
-<http://localhost:8042>.
+**From the desktop app:** once installed (below), the app shows up as
+`reachy_mini_chess` in the app list. Switch it on, then click the ⚙️ next to its
+name, or open <http://localhost:8042>.
 
-**From a terminal**, with the desktop app's Python:
+Install, and **reinstall after every code change**, into the desktop app's
+environment:
 
 ```bash
 APP="$HOME/Library/Application Support/com.pollen-robotics.reachy-mini"
+"$APP/uv" pip install --python "$APP/apps_venv/bin/python" --reinstall-package reachy_mini_chess .
+```
+
+Then switch the app off and on again. Use a normal install, not `-e`: the
+desktop app finds the board's address by reading `main.py` inside the
+environment's `site-packages`, and an editable install leaves no copy there, so
+the ⚙️ link disappears.
+
+**From a terminal**, run from this folder with the desktop app's Python (it uses the code here, no reinstall needed):
+
+```bash
 "$APP/apps_venv/bin/python" -m reachy_mini_chess.main
 ```
 
@@ -87,6 +99,6 @@ levels with:
 ## Tests
 
 ```bash
-"$APP/uv" pip install --python "$APP/apps_venv/bin/python" -e ".[dev]"
-"$APP/apps_venv/bin/python" -m pytest
+"$APP/uv" pip install --python "$APP/apps_venv/bin/python" pytest httpx
+"$APP/apps_venv/bin/python" -m pytest   # from this folder, so it tests the code here
 ```
