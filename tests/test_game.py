@@ -60,6 +60,22 @@ def test_set_position_then_recommend(game):
         game.set_position("8/8/8/8/8/8/8/8 w - - 0 1")  # no kings
 
 
+@pytest.mark.parametrize("uci, san", [("a7a8q", "a8=Q+"), ("a7a8r", "a8=R+"), ("a7a8b", "a8=B"), ("a7a8n", "a8=N")])
+def test_kid_can_promote_to_any_piece(game, uci, san):
+    client = TestClient(create_standalone_app(game))
+    client.post("/api/position", json={"fen": "4k3/P7/8/8/8/8/8/4K3 w - - 0 1"})
+    state = client.post("/api/move", json={"uci": uci}).json()
+    assert state["history"][0] == san
+
+
+def test_knight_promotion_into_a_draw_reads_cleanly(game):
+    game.set_position("4k3/P7/8/8/8/8/8/4K3 w - - 0 1")
+    assert game.play_kid_move("a7a8n") is None  # K+N vs K: insufficient material
+    assert game.state()["message"] == (
+        "Pawn to a8, and becomes a knight. It's a draw by insufficient material. Good game!"
+    )
+
+
 def test_kid_checkmate_ends_the_game(game, events):
     game.set_position("6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1")
     assert game.play_kid_move("a1a8") is None

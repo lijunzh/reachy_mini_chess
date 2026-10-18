@@ -68,13 +68,44 @@ function legalFrom(square) {
     return state.legal.filter((m) => m.startsWith(square));
 }
 
-function onSquareClick(square) {
+const PROMOTIONS = [["q", "Queen"], ["r", "Rook"], ["b", "Bishop"], ["n", "Knight"]];
+
+// Ask what the pawn becomes. Resolves to the full move, or null if cancelled.
+function choosePromotion(moves) {
+    return new Promise((resolve) => {
+        const overlay = $("promo");
+        const choices = $("promo-choices");
+        const onKey = (e) => { if (e.key === "Escape") close(null); };
+        const close = (move) => {
+            overlay.hidden = true;
+            document.removeEventListener("keydown", onKey);
+            resolve(move);
+        };
+        choices.innerHTML = "";
+        for (const [letter, name] of PROMOTIONS) {
+            const move = moves.find((m) => m.endsWith(letter));
+            if (!move) continue;
+            const button = document.createElement("button");
+            button.className = "promo-choice";
+            button.innerHTML = `<span class="piece ${state.turn}">${GLYPHS[letter]}︎</span><span>${name}</span>`;
+            button.addEventListener("click", () => close(move));
+            choices.appendChild(button);
+        }
+        overlay.onclick = (e) => { if (e.target === overlay) close(null); };
+        document.addEventListener("keydown", onKey);
+        overlay.hidden = false;
+        choices.querySelector("button").focus();
+    });
+}
+
+async function onSquareClick(square) {
     if (busy || !state || !state.kid_to_move || state.game_over) return;
     if (selected) {
         const moves = legalFrom(selected).filter((m) => m.slice(2, 4) === square);
         if (moves.length) {
-            // Promotion: always a queen from the board. The API accepts any piece.
-            const move = moves.find((m) => m.length === 4 || m.endsWith("q"));
+            // Several moves to one square only happens on promotion.
+            const move = moves.length > 1 ? await choosePromotion(moves) : moves[0];
+            if (!move) return;  // cancelled: keep the pawn selected
             selected = null;
             highlight = [];
             act("/api/move", { uci: move }, "Reachy is thinking…");

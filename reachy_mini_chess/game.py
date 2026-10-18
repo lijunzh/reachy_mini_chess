@@ -144,12 +144,11 @@ class Game:
     def state(self) -> dict:
         with self.lock:
             board = self.board
-            replay = chess.Board(board.starting_fen) if board.move_stack else None
+            replay = board.root()  # the loaded position, not necessarily the usual start
             history = []
-            if replay is not None:
-                for move in board.move_stack:
-                    history.append(replay.san(move))
-                    replay.push(move)
+            for move in board.move_stack:
+                history.append(replay.san(move))
+                replay.push(move)
             outcome = board.outcome(claim_draw=True)
             return {
                 "fen": board.fen(),
@@ -189,6 +188,7 @@ class Game:
         winner = None if outcome.winner is None else (
             "robot" if outcome.winner == self.robot_color else "kid"
         )
-        self.message = f"{last_move_words} {words}"
+        stop = "" if last_move_words.endswith(("!", ".")) else "."
+        self.message = f"{last_move_words}{stop} {words}"
         self.on_event("game_over", {"winner": winner, "words": words})
         return True

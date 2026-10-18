@@ -141,5 +141,36 @@ button.primary { background: var(--accent); color: #fff; border-color: var(--acc
 .thinking table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
 .thinking th, .thinking td { text-align: left; padding: 3px 6px; border-bottom: 1px solid var(--border); }
 .thinking tr.chosen td { font-weight: 700; background: var(--hint); }
+.promo {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.45);
+}
+.promo[hidden] { display: none; }
+.promo-box {
+    background: var(--card);
+    color: var(--ink);
+    border-radius: 12px;
+    padding: 16px 20px;
+    max-width: 100%;
+    text-align: center;
+}
+.promo-choices { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 12px 0 4px; }
+button.promo-choice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 76px;
+    background: var(--light);
+    color: #1f2328;
+}
+.promo-choice .piece { font-size: 2.6rem; }
+
 .tag { background: #ffd54f; color: #000; border-radius: 4px; padding: 1px 6px; font-size: 0.8rem; }
 .small { font-size: 0.85rem; color: var(--muted); }
